@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>竞赛作战工作台 · 南京师范大学化科院</title>
+<style>
+  :root{
+    --bg:#0e1016; --panel:#171a24; --panel2:#1d2130; --line:#2a2f42;
+    --txt:#e6e8f0; --sub:#9aa3b8; --dim:#6b7287;
+    --a:#e24b4a; --b:#378add; --c:#8a8f9c;
+    --ok:#1d9e75; --warn:#ef9f27;
+    --radius:12px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:var(--bg); color:var(--txt);
+    font-family:"Microsoft YaHei","PingFang SC",sans-serif;
+    line-height:1.6; padding-bottom:60px;
+  }
+  .wrap{max-width:1120px; margin:0 auto; padding:0 20px;}
+  header{padding:28px 0 18px; border-bottom:1px solid var(--line); margin-bottom:22px;}
+  header h1{font-size:22px; font-weight:700; letter-spacing:1px;}
+  header .sub{color:var(--sub); font-size:13px; margin-top:4px;}
+  header .today{color:var(--dim); font-size:12px; margin-top:2px;}
+
+  .hero{
+    background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+    padding:20px 24px; margin-bottom:22px; display:flex; align-items:center; gap:20px; flex-wrap:wrap;
+  }
+  .hero .days{font-size:40px; font-weight:700; color:var(--warn); line-height:1; min-width:110px;}
+  .hero .days small{font-size:13px; font-weight:400; color:var(--sub); display:block; margin-top:6px;}
+  .hero .info h2{font-size:16px; margin-bottom:2px;}
+  .hero .info p{color:var(--sub); font-size:13px;}
+  .hero .state{font-size:12px; padding:3px 10px; border-radius:20px; font-weight:600;}
+  .state.open{background:rgba(29,158,117,.15); color:var(--ok); border:1px solid rgba(29,158,117,.4);}
+  .state.soon{background:rgba(239,159,39,.15); color:var(--warn); border:1px solid rgba(239,159,39,.4);}
+
+  .bar{display:flex; gap:10px; align-items:center; margin-bottom:16px; flex-wrap:wrap;}
+  .bar .lab{font-size:13px; color:var(--dim); margin-right:4px;}
+  .chip{
+    border:1px solid var(--line); background:var(--panel); color:var(--sub);
+    padding:5px 14px; border-radius:20px; cursor:pointer; font-size:13px; user-select:none;
+  }
+  .chip:hover{border-color:#4a5168;}
+  .chip.on{background:var(--panel2); color:var(--txt); border-color:#5a6280;}
+  .chip .n{opacity:.7; font-size:11px; margin-left:4px;}
+
+  .tl{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:16px 18px; margin-bottom:26px; overflow-x:auto;}
+  .tl h3{font-size:13px; color:var(--sub); margin-bottom:12px; font-weight:600;}
+  .months{display:grid; grid-template-columns:repeat(12,1fr); gap:6px; min-width:820px;}
+  .mcell{text-align:center;}
+  .mcell .mlab{font-size:11px; color:var(--dim); margin-bottom:6px;}
+  .mcell .mnow{color:var(--warn); font-weight:700;}
+  .dots{display:flex; flex-direction:column; gap:4px; align-items:center; min-height:120px; justify-content:flex-start; padding-top:4px;}
+  .dot{width:10px; height:10px; border-radius:50%; cursor:help;}
+  .dot.A{background:var(--a);} .dot.B{background:var(--b);} .dot.C{background:var(--c);}
+
+  .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(330px,1fr)); gap:16px; margin-bottom:30px;}
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+    padding:16px 18px; display:flex; flex-direction:column; gap:8px;
+  }
+  .card.hide{display:none;}
+  .card .top{display:flex; justify-content:space-between; align-items:flex-start; gap:8px;}
+  .card h4{font-size:15px; font-weight:600; line-height:1.4;}
+  .badge{font-size:12px; padding:2px 10px; border-radius:6px; flex-shrink:0; font-weight:700;}
+  .badge.A{background:rgba(226,75,74,.15); color:#f09595; border:1px solid rgba(226,75,74,.45);}
+  .badge.B{background:rgba(55,138,221,.15); color:#85b7eb; border:1px solid rgba(55,138,221,.45);}
+  .badge.C{background:rgba(138,143,156,.15); color:#b4b2a9; border:1px solid rgba(138,143,156,.45);}
+  .card .meta{font-size:12.5px; color:var(--sub); display:flex; flex-direction:column; gap:3px;}
+  .card .meta b{color:var(--txt); font-weight:600;}
+  .card .note{font-size:12px; color:var(--dim); border-top:1px dashed var(--line); padding-top:8px; margin-top:2px;}
+  .card .st{font-size:12px; font-weight:600; padding:3px 10px; border-radius:6px; display:inline-block; width:fit-content;}
+  .st.open{background:rgba(29,158,117,.15); color:var(--ok);}
+  .st.soon{background:rgba(239,159,39,.15); color:var(--warn);}
+  .st.wait{background:rgba(107,114,135,.15); color:var(--dim);}
+  .card a.link{font-size:12.5px; color:var(--b); text-decoration:none; border-bottom:1px dashed rgba(55,138,221,.5); width:fit-content;}
+  .card a.link:hover{color:#85b7eb;}
+
+  .sec-title{font-size:17px; font-weight:700; margin-bottom:14px; display:flex; align-items:center; gap:10px;}
+  .sec-title small{font-size:12px; color:var(--dim); font-weight:400;}
+
+  .archive{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:20px;}
+  .form{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-bottom:16px;}
+  .form input{
+    background:var(--panel2); border:1px solid var(--line); color:var(--txt);
+    border-radius:8px; padding:9px 12px; font-size:13px; font-family:inherit;
+  }
+  .form input:focus{outline:none; border-color:#5a6280;}
+  .btn{
+    background:#2563eb; border:none; color:#fff; border-radius:8px; padding:9px 18px;
+    font-size:13px; cursor:pointer; font-weight:600; font-family:inherit;
+  }
+  .btn:hover{background:#1d4ed8;}
+  .btn.danger{background:transparent; border:1px solid rgba(226,75,74,.5); color:#f09595; padding:3px 10px; font-weight:400; font-size:12px;}
+  .btn.danger:hover{background:rgba(226,75,74,.12);}
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  th,td{text-align:left; padding:9px 10px; border-bottom:1px solid var(--line);}
+  th{color:var(--dim); font-weight:600; font-size:12px;}
+  td{color:var(--sub);}
+  td b{color:var(--txt);}
+  td a{color:var(--b); text-decoration:none;}
+  .empty{color:var(--dim); font-size:13px; padding:14px 4px;}
+  footer{color:var(--dim); font-size:12px; text-align:center; margin-top:40px; line-height:1.8;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>竞赛作战工作台</h1>
+    <div class="sub">南京师范大学 · 化学与材料科学学院 · 材料科学与工程</div>
+    <div class="today" id="today"></div>
+  </header>
+
+  <div class="hero" id="hero">
+    <div class="days" id="heroDays">--</div>
+    <div class="info" id="heroInfo"></div>
+    <div class="state" id="heroState"></div>
+  </div>
+
+  <div class="bar">
+    <span class="lab">筛选：</span>
+    <span class="chip on" data-f="all" id="fAll">全部 <span class="n" id="nAll"></span></span>
+    <span class="chip" data-f="A" id="fA">A 级·核心 <span class="n" id="nA"></span></span>
+    <span class="chip" data-f="B" id="fB">B 级·专业 <span class="n" id="nB"></span></span>
+    <span class="chip" data-f="C" id="fC">C 级·练手 <span class="n" id="nC"></span></span>
+    <span style="flex:1"></span>
+    <span class="lab">点月份高亮：</span>
+  </div>
+
+  <div class="tl">
+    <h3>报名窗口时间线（2026.08 – 2027.07）· 圆点=报名月，颜色=认可度</h3>
+    <div class="months" id="months"></div>
+  </div>
+
+  <div class="sec-title">全部赛事 <small id="cardCount"></small></div>
+  <div class="grid" id="grid"></div>
+
+  <div class="sec-title">参赛档案 <small>记录参赛经历，保研/简历直接调用（保存在本机浏览器）</small></div>
+  <div class="archive">
+    <div class="form">
+      <input id="arName" placeholder="赛事名称 *" list="compList">
+      <datalist id="compList"></datalist>
+      <input id="arYear" placeholder="参赛年份，如 2027">
+      <input id="arRole" placeholder="角色，如 队长/队员">
+      <input id="arAward" placeholder="结果/奖项，如 省级二等奖">
+      <input id="arLink" placeholder="证书/成果链接（可选）">
+      <input id="arNote" placeholder="备注（可选）">
+      <button class="btn" onclick="addArchive()">添加记录</button>
+    </div>
+    <div id="archiveBody"></div>
+  </div>
+
+  <footer>
+    数据整理于 2026-08，以官方当年通知为准 · 双创学院通知页：cxcyjy.nnu.edu.cn/pt/Notice<br>
+    本页面数据保存在本地浏览器，可放心使用
+  </footer>
+</div>
+
+<script>
+const COMPS=[
+  {name:'大学生创新创业训练计划（大创）', grade:'A', level:'校→省→国家', form:'组队 ≤5人',
+   rs:[11,1], re:[11,30], months:[11], comp:'11月申报，12月立项；次年4月中期检查，研究1-2年',
+   site:'双创学院', url:'https://cxcyjy.nnu.edu.cn/pt/Notice',
+   note:'⚠ 南师大是秋季申报，不是春季！今年11月必须申报。推免折算：校级0.1/省级0.2/国家级0.5'},
+  {name:'挑战杯（大挑/小挑交替）', grade:'A', level:'校→省→国', form:'组队',
+   rs:[11,1], re:[2,28], months:[11,12,1,2], comp:'校赛培育11月-2月；大挑奇数年（2027），小挑偶数年',
+   site:'校团委', url:'http://www.tiaozhanbei.net',
+   note:'2026为小挑年（已过），下一窗口：2027大挑，11月起学校组织项目培育。A类获奖可走特殊学术专长推免'},
+  {name:'中国国际大学生创新大赛（原互联网+）', grade:'A', level:'校→省→国', form:'组队',
+   rs:[11,1], re:[12,10], months:[11,12], comp:'11-12月校内培育申报 → 次年1-4月校赛 → 5-7月省赛 → 8-10月国赛',
+   site:'教务处/双创学院', url:'https://jwc.njnu.edu.cn',
+   note:'材料方向切入点：把大创/科研成果包装成高教主赛道创意组。先入队积累，大三带队冲奖'},
+  {name:'节能减排社会实践与科技竞赛', grade:'A', level:'校→省→国', form:'组队',
+   rs:[3,1], re:[3,31], months:[3], comp:'3月校赛 → 6月国赛',
+   site:'双创学院', url:'https://cxcyjy.nnu.edu.cn/pt/Notice',
+   note:'材料方向契合：新型节能材料/储能/催化/环保水处理，与化科院科研方向高度契合'},
+  {name:'全国大学生化学实验创新设计大赛', grade:'B', level:'省→国', form:'组队3-5人',
+   rs:[6,1], re:[6,30], months:[6], comp:'跨年赛：6月底前报名 → 次年3月前完成作品 → 次年4月校选 → 6-7月赛区赛',
+   site:'官网', url:'https://cid.nju.edu.cn',
+   note:'⭐ 跨年赛事，作品需提前1年打磨！现在就该找老师定课题。赛道：新创/改进/科普/数智化（AI+化学）'},
+  {name:'全国大学生化工设计竞赛', grade:'B', level:'省→国', form:'组队5人',
+   rs:[2,1], re:[4,30], months:[2,3,4], comp:'2-4月报名 → 8月国赛',
+   site:'官网', url:'http://iche.zju.edu.cn',
+   note:'任务量大（流程模拟+设计文档），适合大三暑期整队投入'},
+  {name:'全国大学生金相技能大赛', grade:'B', level:'校→省→国', form:'个人/组队',
+   rs:[3,1], re:[4,30], months:[3,4], comp:'3-4月校赛报名 → 4-5月校选 → 6月省赛 → 7月底国赛',
+   site:'官网', url:'https://www.jxds.tech',
+   note:'材料人必修！教育部材料类教指委主办。建议学完《材料科学基础》后参赛胜率更高'},
+  {name:'材料热处理创新创业大赛', grade:'B', level:'省→国', form:'组队3-5人',
+   rs:[3,1], re:[5,10], months:[3,4,5], comp:'3月报名开启 → 5月10日截止 → 5月底区域赛 → 7月中旬总决赛',
+   site:'官网', url:'http://www.dasai.chts.org.cn',
+   note:'材料/机械专业限定（大二及以上），作品为近两年创新成果（论文/专利/实物/软件）'},
+  {name:'数学建模（国赛/美赛）', grade:'B', level:'校→省→国', form:'组队3人',
+   rs:[5,1], re:[9,10], months:[5,6,9], comp:'校赛5-6月 → 国赛9月；美赛1月报名、2月初开赛',
+   site:'双创学院', url:'https://cxcyjy.nnu.edu.cn/pt/Notice',
+   note:'建议大二暑期系统学 MATLAB/Python+论文写作，9月国赛练兵'},
+  {name:'全国大学生数学竞赛', grade:'B', level:'省→国', form:'个人',
+   rs:[9,1], re:[10,31], months:[9,10], comp:'9-10月报名 → 11月初赛 → 次年3-4月决赛',
+   site:'数科院/教务处', url:'https://jwc.njnu.edu.cn',
+   note:'理工科通用，直接检验数学基础，获奖可综测加分'},
+  {name:'蓝桥杯（程序设计）', grade:'B', level:'省→国', form:'个人',
+   rs:[10,1], re:[12,31], months:[10,11,12], comp:'10-12月报名 → 次年4月省赛 → 5-6月国赛',
+   site:'官网', url:'https://www.lanqiao.cn',
+   note:'C/C++ 或 Python 组。Python 能力对科研数据处理、机器学习方向是硬通货（你感兴趣的方向）'},
+  {name:'全国大学生物理实验竞赛', grade:'B', level:'校→省→国', form:'组队',
+   rs:[3,1], re:[7,31], months:[3,4,5,6,7], comp:'3月校赛通知（物理实验创新竞赛）→ 6-7月作品提交',
+   site:'双创学院', url:'https://cxcyjy.nnu.edu.cn/pt/Notice',
+   note:'适合材料表征实验功底好的同学'},
+  {name:'中国大学生物理学术竞赛（CUPT）', grade:'B', level:'校→省→国', form:'组队',
+   rs:[10,1], re:[10,31], months:[10], comp:'10月校赛报名 → 次年省赛/国赛',
+   site:'双创学院', url:'https://cxcyjy.nnu.edu.cn/pt/Notice',
+   note:'团队学术对抗形式，锻炼文献调研与答辩能力'},
+  {name:'全国大学生英语竞赛（NECCS）', grade:'C', level:'省→国', form:'个人',
+   rs:[3,1], re:[4,15], months:[3,4], comp:'3月报名 → 4月初赛 → 5月决赛',
+   site:'双创学院', url:'https://cxcyjy.nnu.edu.cn/pt/Notice',
+   note:'刷经历+综测，顺便检验英语水平'},
+  {name:'统计建模大赛', grade:'C', level:'校→省→国', form:'组队',
+   rs:[3,1], re:[3,31], months:[3], comp:'3月校赛通知 → 5月省赛',
+   site:'双创学院', url:'https://cxcyjy.nnu.edu.cn/pt/Notice',
+   note:'数学建模的校内练手场'},
+  {name:'计算机设计大赛', grade:'C', level:'校→省→国', form:'组队',
+   rs:[3,1], re:[4,30], months:[3,4], comp:'3月校选 → 4月省赛推荐',
+   site:'双创学院', url:'https://cxcyjy.nnu.edu.cn/pt/Notice',
+   note:'多媒体/微课/数媒类作品，适合跨学科组合'},
+  {name:'新文科实践创新大赛', grade:'C', level:'校→省→国', form:'组队',
+   rs:[8,1], re:[8,31], months:[8], comp:'8月校内选拔 → 秋季省赛/国赛',
+   site:'教务处', url:'https://jwc.njnu.edu.cn',
+   note:'2026年8月刚发布校内选拔通知，可关注'}
+];
+
+const now=new Date();
+const CY=now.getFullYear();
+
+function mdDate(m,d,y){return new Date(y,m-1,d);}
+function getWin(c){
+  let s=mdDate(c.rs[0],c.rs[1],CY), e=mdDate(c.re[0],c.re[1],CY);
+  if(e<s) e.setFullYear(CY+1);
+  if(e<now){ s.setFullYear(CY+1); e.setFullYear(CY+1); }
+  return {s,e};
+}
+function stateOf(c){
+  const w=getWin(c);
+  if(now>=w.s && now<=w.e) return {k:'open',d:'进行中',w};
+  const diff=w.s-now;
+  if(diff>0 && diff<=90*86400000) return {k:'soon',d:'即将开始',w};
+  return {k:'wait',d:'下一窗口：'+ (w.s.getMonth()+1)+'月'+(w.s.getDate()<10?'0':'')+w.s.getDate()+'日',w};
+}
+function dayDiff(t){return Math.ceil((t-now)/86400000);}
+
+COMPS.forEach(c=>c.st=stateOf(c));
+
+document.getElementById('today').textContent=
+  now.toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric',weekday:'long'});
+
+function renderHero(){
+  const list=COMPS.filter(c=>c.st.k==='open'||c.st.k==='soon')
+    .sort((a,b)=>a.st.w.s-b.st.w.s);
+  const h=document.getElementById('hero');
+  if(!list.length){document.getElementById('heroDays').textContent='—';document.getElementById('heroInfo').innerHTML='<h2>暂无 90 天内报名窗口</h2><p>下一轮报名季：9月起（数学竞赛/数模国赛）</p>';return;}
+  const c=list[0];
+  const days=dayDiff(c.st.w.s);
+  document.getElementById('heroDays').innerHTML=days>0?days+'<small>天后报名开启</small>':(c.st.w.e-now<0?'<small>今日截止</small>':'<small>报名进行中</small>');
+  document.getElementById('heroState').className='state '+c.st.k;
+  document.getElementById('heroState').textContent=c.st.d;
+  document.getElementById('heroInfo').innerHTML=
+    '<h2>'+c.name+'</h2><p>报名窗口：'+(c.st.w.s.getMonth()+1)+'月'+(c.st.w.s.getDate()<10?'0':'')+c.st.w.s.getDate()+'日 ～ '+(c.st.w.e.getMonth()+1)+'月'+(c.st.w.e.getDate()<10?'0':'')+c.st.w.e.getDate()+'日 · '+c.site+'</p>';
+}
+
+function renderMonths(){
+  const months=['8月','9月','10月','11月','12月','1月','2月','3月','4月','5月','6月','7月'];
+  const realM=[8,9,10,11,12,1,2,3,4,5,6,7];
+  const wrap=document.getElementById('months');
+  months.forEach((m,i)=>{
+    const cell=document.createElement('div'); cell.className='mcell';
+    const lab=document.createElement('div'); lab.className='mlab'+(realM[i]===now.getMonth()+1?' mnow':'');
+    lab.textContent=m;
+    const dots=document.createElement('div'); dots.className='dots';
+    COMPS.filter(c=>c.months.indexOf(realM[i])>-1)
+      .sort((a,b)=>a.grade<b.grade?-1:1)
+      .forEach(c=>{
+        const d=document.createElement('div'); d.className='dot '+c.grade;
+        d.title=c.name+'（'+c.grade+'级）';
+        dots.appendChild(d);
+      });
+    cell.appendChild(lab); cell.appendChild(dots);
+    wrap.appendChild(cell);
+  });
+}
+
+let curF='all';
+function renderGrid(){
+  const g=document.getElementById('grid'); g.innerHTML='';
+  COMPS.filter(c=>curF==='all'||c.grade===curF)
+    .sort((a,b)=>a.st.w.s-b.st.w.s)
+    .forEach(c=>{
+      const card=document.createElement('div'); card.className='card';
+      card.innerHTML=
+        '<div class="top"><h4>'+c.name+'</h4><span class="badge '+c.grade+'">'+c.grade+'级</span></div>'+
+        '<div class="meta">'+
+          '<span>级别：<b>'+c.level+'</b>　形式：<b>'+c.form+'</b></span>'+
+          '<span>报名：<b>'+c.rs[0]+'月'+c.rs[1]+'日 ～ '+c.re[0]+'月'+c.re[1]+'日</b></span>'+
+          '<span>赛程：<b>'+c.comp+'</b></span>'+
+          '<span>渠道：<b>'+c.site+'</b></span>'+
+        '</div>'+
+        '<span class="st '+c.st.k+'">'+c.st.d+'</span>'+
+        '<a class="link" href="'+c.url+'" target="_blank" rel="noopener">进入官方渠道 ↗</a>'+
+        (c.note?'<div class="note">'+c.note+'</div>':'');
+      g.appendChild(card);
+    });
+  document.getElementById('cardCount').textContent='（'+g.children.length+' 项）';
+  const n={all:COMPS.length,A:COMPS.filter(c=>c.grade==='A').length,B:COMPS.filter(c=>c.grade==='B').length,C:COMPS.filter(c=>c.grade==='C').length};
+  document.getElementById('nAll').textContent=n.all;
+  document.getElementById('nA').textContent=n.A;
+  document.getElementById('nB').textContent=n.B;
+  document.getElementById('nC').textContent=n.C;
+}
+
+document.querySelectorAll('.chip[data-f]').forEach(ch=>{
+  ch.onclick=()=>{
+    document.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));
+    ch.classList.add('on'); curF=ch.dataset.f; renderGrid();
+  };
+});
+
+let archive=JSON.parse(localStorage.getItem('contest_archive_v1')||'[]');
+function save(){localStorage.setItem('contest_archive_v1',JSON.stringify(archive));}
+function renderArchive(){
+  const dl=document.getElementById('compList');
+  if(!dl.children.length) COMPS.forEach(c=>{const o=document.createElement('option');o.value=c.name;dl.appendChild(o);});
+  const body=document.getElementById('archiveBody');
+  if(!archive.length){body.innerHTML='<div class="empty">还没有记录。参加比赛后点上方"添加记录"，你的参赛档案会保存在本机浏览器里。</div>';return;}
+  let h='<table><thead><tr><th>赛事</th><th>年份</th><th>角色</th><th>结果/奖项</th><th>链接</th><th>备注</th><th></th></tr></thead><tbody>';
+  archive.forEach((r,i)=>{
+    h+='<tr><td><b>'+esc(r.name)+'</b></td><td>'+esc(r.year)+'</td><td>'+esc(r.role)+'</td><td>'+esc(r.award)+'</td>'+
+       '<td>'+(r.link?'<a href="'+esc(r.link)+'" target="_blank" rel="noopener">查看</a>':'—')+'</td><td>'+esc(r.note)+'</td>'+
+       '<td><button class="btn danger" onclick="delArchive('+i+')">删除</button></td></tr>';
+  });
+  h+='</tbody></table>';
+  body.innerHTML=h;
+}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function addArchive(){
+  const g=id=>document.getElementById(id).value.trim();
+  if(!g('arName')){alert('请填写赛事名称');return;}
+  archive.push({name:g('arName'),year:g('arYear'),role:g('arRole'),award:g('arAward'),link:g('arLink'),note:g('arNote')});
+  save(); renderArchive();
+  ['arName','arYear','arRole','arAward','arLink','arNote'].forEach(i=>document.getElementById(i).value='');
+}
+function delArchive(i){archive.splice(i,1);save();renderArchive();}
+
+renderHero(); renderMonths(); renderGrid(); renderArchive();
+</script>
+</body>
+</html>
