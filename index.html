@@ -56,12 +56,33 @@
   .dot{width:10px; height:10px; border-radius:50%; cursor:help;}
   .dot.A{background:var(--a);} .dot.B{background:var(--b);} .dot.C{background:var(--c);}
 
+  .sec-title{font-size:17px; font-weight:700; margin-bottom:14px; display:flex; align-items:center; gap:10px;}
+  .sec-title small{font-size:12px; color:var(--dim); font-weight:400;}
+
+  .notif-wrap{display:flex; flex-direction:column; gap:8px; margin-bottom:26px;}
+  .notif-card{
+    background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+    padding:12px 16px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; font-size:13px;
+  }
+  .notif-card .nd{color:var(--dim); font-size:12px; min-width:84px;}
+  .notif-card .nt{flex:1; min-width:200px;}
+  .notif-card .nt a{color:var(--txt); text-decoration:none;}
+  .notif-card .nt a:hover{color:var(--b);}
+  .notif-card .tag{
+    font-size:11px; padding:1px 8px; border-radius:10px; flex-shrink:0;
+    background:rgba(55,138,221,.15); color:#85b7eb; border:1px solid rgba(55,138,221,.4);
+  }
+  .notif-card .att a{font-size:12px; color:var(--ok); text-decoration:none; border-bottom:1px dashed rgba(29,158,117,.4);}
+  .notif-empty{
+    background:var(--panel); border:1px dashed var(--line); border-radius:var(--radius);
+    padding:16px; color:var(--dim); font-size:13px; margin-bottom:26px;
+  }
+
   .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(330px,1fr)); gap:16px; margin-bottom:30px;}
   .card{
     background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
     padding:16px 18px; display:flex; flex-direction:column; gap:8px;
   }
-  .card.hide{display:none;}
   .card .top{display:flex; justify-content:space-between; align-items:flex-start; gap:8px;}
   .card h4{font-size:15px; font-weight:600; line-height:1.4;}
   .badge{font-size:12px; padding:2px 10px; border-radius:6px; flex-shrink:0; font-weight:700;}
@@ -78,8 +99,18 @@
   .card a.link{font-size:12.5px; color:var(--b); text-decoration:none; border-bottom:1px dashed rgba(55,138,221,.5); width:fit-content;}
   .card a.link:hover{color:#85b7eb;}
 
-  .sec-title{font-size:17px; font-weight:700; margin-bottom:14px; display:flex; align-items:center; gap:10px;}
-  .sec-title small{font-size:12px; color:var(--dim); font-weight:400;}
+  details{border-top:1px dashed var(--line); padding-top:8px; margin-top:2px;}
+  summary{cursor:pointer; font-size:12.5px; color:var(--sub); list-style:none; user-select:none;}
+  summary::before{content:"▸ ";}
+  details[open] summary::before{content:"▾ ";}
+  summary:hover{color:var(--txt);}
+  .notif-item{font-size:12.5px; padding:5px 0; border-bottom:1px dashed rgba(42,47,66,.7);}
+  .notif-item:last-child{border-bottom:none;}
+  .notif-item .nd{color:var(--dim); margin-right:8px; font-size:11.5px;}
+  .notif-item a{color:var(--b); text-decoration:none;}
+  .notif-item a:hover{text-decoration:underline;}
+  .notif-item .att{font-size:11.5px; color:var(--ok); margin-left:8px;}
+  .notif-item .att a{color:var(--ok);}
 
   .archive{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:20px;}
   .form{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-bottom:16px;}
@@ -120,6 +151,9 @@
     <div class="state" id="heroState"></div>
   </div>
 
+  <div class="sec-title">通知中心 <small id="notifMeta">加载中…</small></div>
+  <div class="notif-wrap" id="notifCenter"></div>
+
   <div class="bar">
     <span class="lab">筛选：</span>
     <span class="chip on" data-f="all" id="fAll">全部 <span class="n" id="nAll"></span></span>
@@ -155,7 +189,7 @@
 
   <footer>
     数据整理于 2026-08，以官方当年通知为准 · 双创学院通知页：cxcyjy.nnu.edu.cn/pt/Notice<br>
-    本页面数据保存在本地浏览器，可放心使用
+    公告数据由每日自动检测任务更新（notifications.json），本页面其他数据保存在本地浏览器
   </footer>
 </div>
 
@@ -258,7 +292,6 @@ document.getElementById('today').textContent=
 function renderHero(){
   const list=COMPS.filter(c=>c.st.k==='open'||c.st.k==='soon')
     .sort((a,b)=>a.st.w.s-b.st.w.s);
-  const h=document.getElementById('hero');
   if(!list.length){document.getElementById('heroDays').textContent='—';document.getElementById('heroInfo').innerHTML='<h2>暂无 90 天内报名窗口</h2><p>下一轮报名季：9月起（数学竞赛/数模国赛）</p>';return;}
   const c=list[0];
   const days=dayDiff(c.st.w.s);
@@ -290,12 +323,27 @@ function renderMonths(){
   });
 }
 
+function compNotifs(name){
+  return NOTIFICATIONS.filter(n=>name.indexOf(n.comp)>-1||n.comp.indexOf(name)>-1)
+    .sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+}
+
 let curF='all';
 function renderGrid(){
   const g=document.getElementById('grid'); g.innerHTML='';
   COMPS.filter(c=>curF==='all'||c.grade===curF)
     .sort((a,b)=>a.st.w.s-b.st.w.s)
     .forEach(c=>{
+      const cn=compNotifs(c.name);
+      let notifHtml='';
+      if(cn.length){
+        notifHtml='<details><summary>近期公告（'+cn.length+'）</summary><div style="margin-top:6px">'+
+          cn.slice(0,6).map(n=>
+            '<div class="notif-item"><span class="nd">'+esc(n.date)+'</span><a href="'+esc(n.url)+'" target="_blank" rel="noopener">'+esc(n.title)+'</a>'+
+            (n.attach?'<span class="att"><a href="'+esc(n.attach.url)+'">⬇ '+esc(n.attach.name)+'</a></span>':'')+
+            '</div>').join('')+
+          '</div></details>';
+      }
       const card=document.createElement('div'); card.className='card';
       card.innerHTML=
         '<div class="top"><h4>'+c.name+'</h4><span class="badge '+c.grade+'">'+c.grade+'级</span></div>'+
@@ -307,6 +355,7 @@ function renderGrid(){
         '</div>'+
         '<span class="st '+c.st.k+'">'+c.st.d+'</span>'+
         '<a class="link" href="'+c.url+'" target="_blank" rel="noopener">进入官方渠道 ↗</a>'+
+        notifHtml+
         (c.note?'<div class="note">'+c.note+'</div>':'');
       g.appendChild(card);
     });
@@ -351,7 +400,45 @@ function addArchive(){
 }
 function delArchive(i){archive.splice(i,1);save();renderArchive();}
 
-renderHero(); renderMonths(); renderGrid(); renderArchive();
+let NOTIFICATIONS=[];
+let NOTIF_META='公告数据加载中…';
+function renderNotif(){
+  document.getElementById('notifMeta').textContent=NOTIF_META;
+  const w=document.getElementById('notifCenter');
+  if(!NOTIFICATIONS.length){
+    w.innerHTML='<div class="notif-empty">暂无公告记录。每日自动检测任务启动后，最新通知会自动出现在这里（含附件下载）。</div>';
+    return;
+  }
+  const list=NOTIFICATIONS.slice(0,10);
+  let h='';
+  list.forEach(n=>{
+    h+='<div class="notif-card"><span class="nd">'+esc(n.date)+'</span><span class="tag">'+esc(n.comp)+'</span>'+
+       '<span class="nt"><a href="'+esc(n.url)+'" target="_blank" rel="noopener">'+esc(n.title)+' ↗</a></span>'+
+       (n.attach?'<span class="att"><a href="'+esc(n.attach.url)+'">⬇ '+esc(n.attach.name)+'</a></span>':'')+
+       '</div>';
+  });
+  w.innerHTML=h;
+}
+
+async function loadNotifs(){
+  try{
+    const r=await fetch('notifications.json?t='+Date.now(),{cache:'no-store'});
+    if(!r.ok) throw 0;
+    const d=await r.json();
+    if(d && Array.isArray(d.notifications)){
+      NOTIFICATIONS=d.notifications;
+      NOTIF_META='更新于 '+(d.updated||'未知')+' · 共 '+NOTIFICATIONS.length+' 条';
+    }else{ throw 0; }
+  }catch(e){
+    NOTIFICATIONS=[];
+    NOTIF_META='本机预览模式：部署到 GitHub 后自动加载最新公告';
+  }
+  renderNotif();
+  renderGrid();
+}
+
+renderHero(); renderMonths(); renderArchive();
+loadNotifs();
 </script>
 </body>
 </html>
